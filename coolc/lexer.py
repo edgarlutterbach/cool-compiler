@@ -7,6 +7,22 @@ LOWERCASE = set(string.ascii_lowercase)
 DIGITS = set(string.digits)
 IDENT_CHARS = LETTERS | DIGITS | {"_"}
 WHITESPACES = set(string.whitespace)
+SIMPLE_SYMBOLS = {
+    "+": TokenType.PLUS,
+    "-": TokenType.MINUS,
+    "*": TokenType.TIMES,
+    "/": TokenType.DIVIDE,
+    "~": TokenType.NEG,
+    ".": TokenType.DOT,
+    "@": TokenType.AT,
+    "{": TokenType.LBRACE,
+    "}": TokenType.RBRACE,
+    "(": TokenType.LPAREN,
+    ")": TokenType.RPAREN,
+    ":": TokenType.COLON,
+    ";": TokenType.SEMI,
+    ",": TokenType.COMMA,
+}
 
 class LexicalError(Exception):
     def __init__(self, message, line):
@@ -140,4 +156,25 @@ class Lexer:
         raise NotImplementedError
 
     def read_operator(self):
-        raise NotImplementedError
+        char = self.advance()
+
+        if char == "<":
+            if self.match("-"):
+                return self.make_token(TokenType.ASSIGN)
+            if self.match("="):
+                return self.make_token(TokenType.LE)
+            return self.make_token(TokenType.LT)
+
+        if char == "=":
+            if self.match(">"):
+                return self.make_token(TokenType.DARROW)
+            return self.make_token(TokenType.EQ)
+
+        if char == "*" and self.match(")"):
+            raise LexicalError("Fechamento de comentário sem abertura", self.token_line)
+
+        symbol_type = SIMPLE_SYMBOLS.get(char)
+        if symbol_type is not None:
+            return self.make_token(symbol_type)
+
+        raise LexicalError(f"Caracter inválido: {char!r}", self.token_line)
