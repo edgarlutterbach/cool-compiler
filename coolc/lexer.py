@@ -23,6 +23,13 @@ SIMPLE_SYMBOLS = {
     ";": TokenType.SEMI,
     ",": TokenType.COMMA,
 }
+ESCAPES = {
+    "b": "\b",
+    "t": "\t",
+    "n": "\n",
+    "f": "\f",
+}
+MAX_STRING_LENGTH = 1024
 
 class LexicalError(Exception):
     def __init__(self, message, line):
@@ -153,7 +160,33 @@ class Lexer:
         return self.make_token(TokenType.INT_CONST, int(lexeme))
 
     def read_string(self):
-        raise NotImplementedError
+        self.advance()
+        start_line = self.line
+        accumulator = ""
+
+        while not self.at_end() and self.peek() != '"':
+            if len(accumulator) >= MAX_STRING_LENGTH:
+                raise LexicalError(f"String excede o limite de {MAX_STRING_LENGTH} caracteres", start_line)
+
+            if self.peek() == "\\":
+                self.advance()
+                escaped = self.advance()
+                accumulator += ESCAPES.get(escaped, escaped)
+                continue
+
+            if self.peek() == "\n":
+                raise LexicalError("Quebra de linha não escapada dentro de string", start_line)
+
+            if self.peek() == "\0":
+                raise LexicalError("Caractere nulo dentro de string", start_line)
+
+            accumulator += self.advance()
+
+        if self.at_end():
+            raise LexicalError("String não foi fechada", start_line)
+
+        self.advance()
+        return self.make_token(TokenType.STR_CONST, accumulator)
 
     def read_operator(self):
         char = self.advance()
