@@ -3,7 +3,9 @@ import string
 from coolc.tokens import TokenType, Token, KEYWORDS
 
 LETTERS = set(string.ascii_letters)
+LOWERCASE = set(string.ascii_lowercase)
 DIGITS = set(string.digits)
+IDENT_CHARS = LETTERS | DIGITS | {"_"}
 WHITESPACES = set(string.whitespace)
 
 class LexicalError(Exception):
@@ -100,7 +102,29 @@ class Lexer:
             break
 
     def read_identifier(self):
-        raise NotImplementedError
+        start = self.pos
+
+        while self.peek() in IDENT_CHARS:
+            self.advance()
+
+        lexeme = self.text[start:self.pos]
+
+        lex_lower = lexeme.lower()
+
+        if lex_lower in ("true", "false") and lexeme[0] in LOWERCASE:
+            return self.make_token(TokenType.BOOL_CONST, lex_lower == "true")
+
+        keyword_type = KEYWORDS.get(lex_lower)
+        if keyword_type is not None:
+            return self.make_token(keyword_type)
+
+        if lexeme[0] == "_":
+            raise LexicalError("Identificador não pode começar com sublinhado", self.token_line)
+
+        if lexeme[0] in LOWERCASE:
+            return self.make_token(TokenType.OBJECTID, lexeme)
+
+        return self.make_token(TokenType.TYPEID, lexeme)
 
     def read_number(self):
         raise NotImplementedError
