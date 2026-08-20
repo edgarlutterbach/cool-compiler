@@ -67,21 +67,34 @@ class Lexer:
         return True
 
     def next_token(self):
-        self.skip_whitespaces_and_comments()
-        self.token_line = self.line
+        try:
+            self.skip_whitespaces_and_comments()
+            self.token_line = self.line
 
-        if self.at_end():
-            return self.make_token(TokenType.EOF)
+            if self.at_end():
+                return self.make_token(TokenType.EOF)
 
-        char = self.peek()
+            char = self.peek()
 
-        if char in LETTERS or char == "_":
-            return self.read_identifier()
-        if char in DIGITS:
-            return self.read_number()
-        if char == '"':
-            return self.read_string()
-        return self.read_operator()
+            if char in LETTERS or char == "_":
+                return self.read_identifier()
+            if char in DIGITS:
+                return self.read_number()
+            if char == '"':
+                return self.read_string()
+            return self.read_operator()
+        except LexicalError as error:
+            return Token(TokenType.ERROR, error.line, error.message)
+
+    def tokenize(self):
+        tokens = []
+        while True:
+            token = self.next_token()
+            tokens.append(token)
+            if token.tipo == TokenType.EOF:
+                break
+
+        return tokens
 
     def make_token(self, token_type, value=None):
         return Token(token_type, self.token_line, value)
@@ -123,6 +136,12 @@ class Lexer:
                     raise LexicalError("Comentário de bloco não foi fechado", start_line)
                 continue
             break
+
+    def skip_to_string_end(self):
+        while not self.at_end() and self.peek() not in ('"', "\n"):
+            self.advance()
+        if self.peek() == '"':
+            self.advance()
 
     def read_identifier(self):
         start = self.pos
@@ -166,6 +185,7 @@ class Lexer:
 
         while not self.at_end() and self.peek() != '"':
             if len(accumulator) >= MAX_STRING_LENGTH:
+                self.skip_to_string_end()
                 raise LexicalError(f"String excede o limite de {MAX_STRING_LENGTH} caracteres", start_line)
 
             if self.peek() == "\\":
@@ -178,6 +198,7 @@ class Lexer:
                 raise LexicalError("Quebra de linha não escapada dentro de string", start_line)
 
             if self.peek() == "\0":
+                self.skip_to_string_end()
                 raise LexicalError("Caractere nulo dentro de string", start_line)
 
             accumulator += self.advance()
