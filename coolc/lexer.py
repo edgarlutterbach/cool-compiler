@@ -127,7 +127,14 @@ class Lexer:
         return self.make_token(TokenType.TYPEID, lexeme)
 
     def read_number(self):
-        raise NotImplementedError
+        start = self.pos
+
+        while self.peek() in DIGITS:
+            self.advance()
+
+        lexeme = self.text[start:self.pos]
+
+        return self.make_token(TokenType.INT_CONST, int(lexeme))
 
     def read_string(self):
         raise NotImplementedError
