@@ -1,5 +1,5 @@
 from coolc.tokens import TokenType
-from coolc.ast import Program, Class
+from coolc.ast import Program, Class, Method, Attribute, Formal
 
 class ParseError(Exception):
 
@@ -107,3 +107,95 @@ class Parser:
 
         # Retorna o nó com tudo que foi coletado
         return Class(name, parent, features, keyword.linha)
+
+    # feature ::= OBJECTID ( [ formal [[ , formal ]]* ] ) : TYPEID { expr }
+    #           | OBJECTID : TYPEID [ <- expr ]
+    def parse_feature(self):
+
+        # Espera o nome, o que é comum as duas alternativas: método ou atributo
+        name_token = self.expect(TokenType.OBJECTID)
+
+        # Se observamos '(', é um método, mandamos para o parse_method
+        if self.check(TokenType.LPAREN):
+            return self.parse_method(name_token)
+
+        # Caso contrário, é um atributo, mandamos para o parse_attribute
+        return self.parse_attribute(name_token)
+
+    # Função para a alternativa de método
+    def parse_method(self, name_token):
+
+        # Consome o '(' abrindo o campo de parâmetros do método
+        self.expect(TokenType.LPAREN)
+
+        # Lista de parâmetros
+        formals = []
+
+        # Se não fechar imediatamente (o que é permitido), adicionamos os parâmetros a lista
+        if not self.check(TokenType.RPAREN):
+            formals.append(self.parse_formal())
+
+            # Verifica as vírgulas separando os parâmetros e avança
+            while self.check(TokenType.COMMA):
+                self.advance()
+
+                # Adiciona os parâmetros a lista
+                formals.append(self.parse_formal())
+
+        # Espera ')' e avança
+        self.expect(TokenType.RPAREN)
+
+        # Espera ':' e avança
+        self.expect(TokenType.COLON)
+
+        # Lê e guarda o tipo de retorno, avançando o token
+        return_type = self.expect(TokenType.TYPEID).valor
+
+        # Espera o '{' e avança
+        self.expect(TokenType.LBRACE)
+
+        # Armazena o corpo do método
+        body = self.parse_expr()
+
+        # Espera o '}' e avança
+        self.expect(TokenType.RBRACE)
+
+        # Retorna o nó do método
+        return Method(name_token.valor, formals, return_type, body, name_token.linha)
+
+    # Função para a alternativa de atributo
+    def parse_attribute(self, name_token):
+
+        # Consome o ':' indicando que é um atributo
+        self.expect(TokenType.COLON)
+
+        # Armazena o tipo declarado do atributo
+        type_name = self.expect(TokenType.TYPEID).valor
+
+        # Inicializa o atributo como None
+        init = None
+
+        # Se tiver uma atribuição, avança
+        if self.check(TokenType.ASSIGN):
+            self.advance()
+
+            # Armazena a expressão como valor do atributo
+            init = self.parse_expr()
+
+        # Retorna o nó do atributo montado
+        return Attribute(name_token.valor, type_name, init, name_token.linha)
+
+    # formal ::= OBJECTID : TYPEID
+    def parse_formal(self):
+
+        # Espera o nome do parâmetro
+        name_token = self.expect(TokenType.OBJECTID)
+
+        # Espera ':'
+        self.expect(TokenType.COLON)
+
+        # Espera o tipo do parâmetro
+        type_name = self.expect(TokenType.TYPEID).valor
+
+        # Retorna o nó do parâmetro
+        return Formal(name_token.valor, type_name, name_token.linha)
