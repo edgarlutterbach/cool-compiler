@@ -1,6 +1,9 @@
 import sys
 
 from coolc.lexer import Lexer
+from coolc.parser import Parser, ParseError
+from coolc.tokens import TokenType
+from coolc.astprinter import print_tree
 
 def format_token(token):
     lines = [f"{token.tipo.name}"]
@@ -24,10 +27,21 @@ def main():
         sys.exit(1)
 
     lexer = Lexer(source)
+    tokens = lexer.tokenize()
 
-    for token in lexer.tokenize():
-        print(format_token(token))
-        print()
+    errors = [t for t in tokens if t.tipo == TokenType.ERROR]
+    if errors:
+        for token in errors:
+            print(f"Erro léxico na linha {token.linha}: {token.valor}")
+        sys.exit(1)
+
+    try:
+        tree = Parser(tokens).parse_program()
+    except ParseError as error:
+        print(f"Erro de sintaxe na linha {error.line}: {error.message}")
+        sys.exit(1)
+
+    print_tree(tree)
 
 if __name__ == "__main__":
     main()

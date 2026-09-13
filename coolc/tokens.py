@@ -78,3 +78,41 @@ KEYWORDS = {
     "of": TokenType.OF,
     "not": TokenType.NOT
 }
+
+# Representação legível de cada tipo de token, para mensagens de erro.
+# Os tipos ausentes (identificadores, literais) não têm símbolo fixo e
+# caem no padrão da função de descrição
+TOKEN_SYMBOLS = {
+    TokenType.LBRACE: "{",
+    TokenType.RBRACE: "}",
+    TokenType.LPAREN: "(",
+    TokenType.RPAREN: ")",
+    TokenType.COLON: ":",
+    TokenType.SEMI: ";",
+    TokenType.COMMA: ",",
+    TokenType.DARROW: "=>",
+    TokenType.ASSIGN: "<-",
+    TokenType.DOT: ".",
+    TokenType.AT: "@",
+    TokenType.PLUS: "+",
+    TokenType.MINUS: "-",
+    TokenType.TIMES: "*",
+    TokenType.DIVIDE: "/",
+    TokenType.NEG: "~",
+    TokenType.LT: "<",
+    TokenType.LE: "<=",
+    TokenType.EQ: "=",
+}
+
+# Descreve um tipo de token de forma legível em mensagens de erro
+def describe(token_type):
+    # Símbolos e palavras reservadas têm texto fixo
+    if token_type in TOKEN_SYMBOLS:
+        return f"'{TOKEN_SYMBOLS[token_type]}'"
+
+    # Palavras reservadas: o valor do enum é o próprio nome
+    if token_type in KEYWORDS.values():
+        return f"'{token_type.name.lower()}'"
+
+    # Identificadores, literais e controle não têm lexema fixo
+    return token_type.name.lower()

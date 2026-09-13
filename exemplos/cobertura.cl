@@ -64,7 +64,7 @@ segunda parte";
         }
     };
 
-    CLASS_maiusculo(): Int { 1 };  -- reservada em maiusculo ainda e reservada
+    class_maiusculo(): Int { 1 };  -- reservada em maiusculo ainda e reservada
     com_sublinhado_meio_1: Int <- 5;
 
 };
