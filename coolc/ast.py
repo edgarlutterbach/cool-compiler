@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from coolc.lexer import TokenType
+from coolc.tokens import TokenType
 
 # Nós da árvore sintática abstrata
 # Cada classe corresponde a uma construção da gramática de COOL.
@@ -8,28 +8,22 @@ from coolc.lexer import TokenType
 # Raiz da árvore
 @dataclass
 class Program:
-    # Lista de Class, na ordem em que aparecem no código
     classes: list
 
 # Gramática do 'class TYPEID [ inherits TYPEID ] { [[ feature ; ]]* }'
 @dataclass
 class Class:
     name: str
-    # 'parent' podendo ser uma str ou None, caso 'inherits' esteja ausente
     parent: str | None
-    # Métodos e atributos misturados, na ordem do código-fonte
     features: list
-    # Linha do 'class' para mensagens de erro
     line: int
 
 # Gramática do 'OBJECTID ( [ formal [[ , formal ]]* ] ) : TYPEID { expr }'
 @dataclass
 class Method:
     name: str
-    # Lista de Formal
     formals: list
     return_type: str
-    # O body é uma expressão única já que COOL é uma linguagem de expressões
     body: object
     line: int
 
@@ -38,7 +32,6 @@ class Method:
 class Attribute:
     name: str
     type_name: str
-    # None quando não há inicialização explícita
     init: object | None
     line: int
 
@@ -102,11 +95,7 @@ class Assign:
 # Despacho de método -- expr[@TYPE].ID( args )
 @dataclass
 class Dispatch:
-
-    # A expressão cujo método será chamado
     receiver: object
-
-    # TYPEID do despacho estático ou None no dinâmico
     static_type: str | None
     name: str
     args: list
@@ -120,7 +109,6 @@ class If:
     else_branch: object
     line: int
 
-
 # Laço -- while expr loop expr pool
 @dataclass
 class While:
@@ -128,13 +116,11 @@ class While:
     body: object
     line: int
 
-
 # Bloco -- { [[ expr ; ]]+ }
 @dataclass
 class Block:
     expressions: list
     line: int
-
 
 # Instanciação -- new TYPEID
 @dataclass
@@ -150,7 +136,6 @@ class LetBinding:
     init: object | None
     line: int
 
-
 # let ID : TYPE [ <- expr ] [[ , ID : TYPE [ <- expr ] ]]* in expr
 @dataclass
 class Let:
@@ -165,7 +150,6 @@ class CaseBranch:
     type_name: str
     body: object
     line: int
-
 
 # case expr of [[ ID : TYPE => expr ; ]]+ esac
 @dataclass

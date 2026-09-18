@@ -2,22 +2,18 @@ from coolc import ast
 from coolc.tokens import describe
 
 # Imprime a árvore sintática de forma indentada e legível.
-# Cada nível de aninhamento recebe dois espaços de recuo.
 def print_tree(node, level=0):
     indent = "  " * level
 
-    # --- Raiz ---
-
+    # Raiz
     if isinstance(node, ast.Program):
         print(f"{indent}Program")
         for cls in node.classes:
             print_tree(cls, level + 1)
         return
 
-    # --- Estrutura ---
-
+    # Estrutura
     if isinstance(node, ast.Class):
-        # A cláusula 'inherits' só aparece quando existe
         inherits = f" inherits {node.parent}" if node.parent else ""
         print(f"{indent}Class {node.name}{inherits}  (linha {node.line})")
         for feature in node.features:
@@ -25,7 +21,6 @@ def print_tree(node, level=0):
         return
 
     if isinstance(node, ast.Method):
-        # Monta a assinatura na mesma linha do nó
         params = ", ".join(f"{f.name}: {f.type_name}" for f in node.formals)
         print(f"{indent}Method {node.name}({params}): {node.return_type}"
               f"  (linha {node.line})")
@@ -40,7 +35,7 @@ def print_tree(node, level=0):
             print_tree(node.init, level + 1)
         return
 
-    # --- Operadores ---
+    # Operadores
 
     if isinstance(node, ast.BinOperation):
         print(f"{indent}BinOp {describe(node.operator)}")
@@ -58,7 +53,7 @@ def print_tree(node, level=0):
         print_tree(node.value, level + 1)
         return
 
-    # --- Controle ---
+    # Controle
 
     if isinstance(node, ast.If):
         print(f"{indent}If  (linha {node.line})")
@@ -110,10 +105,9 @@ def print_tree(node, level=0):
         print_tree(node.body, level + 1)
         return
 
-    # --- Despacho e instanciação ---
+    # Despacho e instanciação
 
     if isinstance(node, ast.Dispatch):
-        # O tipo do despacho estático só aparece quando existe
         static = f"@{node.static_type}" if node.static_type else ""
         print(f"{indent}Dispatch {static}.{node.name}  (linha {node.line})")
         print(f"{indent}  receiver:")
@@ -128,7 +122,7 @@ def print_tree(node, level=0):
         print(f"{indent}New {node.type_name}  (linha {node.line})")
         return
 
-    # --- Folhas ---
+    # Folhas
 
     if isinstance(node, ast.IntLiteral):
         print(f"{indent}Int {node.value}")
@@ -147,6 +141,4 @@ def print_tree(node, level=0):
         print(f"{indent}Identifier {node.name}")
         return
 
-    # Rede de segurança: se um nó novo for criado e esquecido aqui,
-    # a saída avisa em vez de omitir silenciosamente
     print(f"{indent}<nó desconhecido: {type(node).__name__}>")
