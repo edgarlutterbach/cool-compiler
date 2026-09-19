@@ -1,47 +1,174 @@
-# Compilador COOL
+# 🧊 coolc — Compilador COOL em Python
 
-Compilador para a linguagem COOL, desenvolvido em Python para a disciplina de 
-Compiladores da UFF — Campus de Rio das Ostras.
+> Implementação didática de um compilador para a linguagem **COOL** (*Classroom Object-Oriented Language*), escrita do zero em Python puro, com analisador léxico e analisador sintático por descida recursiva que produz uma árvore sintática abstrata (AST).
 
-O objetivo final é traduzir código COOL para BRIL, uma representação intermediária 
-que permite execução e otimização do programa original.
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![Dependências](https://img.shields.io/badge/depend%C3%AAncias-nenhuma-brightgreen)
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 
 ---
 
-## Como executar
+## 📖 Sobre o projeto
 
-Requer Python 3.10 ou superior. O projeto não possui dependências externas.
+COOL é uma linguagem orientada a objetos, pequena e fortemente tipada, criada para o ensino de construção de compiladores. Este projeto segue a especificação oficial do [Manual de Referência de COOL](https://theory.stanford.edu/~aiken/software/cool/cool-manual.pdf) e está organizado nas fases clássicas de um compilador:
+
+| Fase | Módulo | Status |
+|---|---|---|
+| Análise léxica | `coolc/lexer.py` | ✅ Concluída |
+| Análise sintática | `coolc/parser.py` | ✅ Concluída |
+| Análise semântica | — | 🚧 Planejada |
+| Geração de código | — | 🚧 Planejada |
+
+---
+
+## ✨ Funcionalidades
+
+### 🔤 Analisador léxico
+
+- Reconhecimento das 19 palavras reservadas de COOL, insensíveis a maiúsculas (`class`, `CLASS` e `cLaSs` são o mesmo token).
+- Tratamento especial de `true` e `false`, que exigem apenas a primeira letra minúscula e são emitidos como `BOOL_CONST` com valor.
+- Distinção entre `TYPEID` (inicial maiúscula) e `OBJECTID` (inicial minúscula).
+- Literais inteiros armazenados já convertidos para `int`, com suporte a zeros à esquerda (`007`).
+- Literais de string com escapes resolvidos na tokenização (`\b`, `\t`, `\n`, `\f` e a regra geral `\c` → `c`), incluindo strings multilinha com `\` + quebra de linha.
+- Comentários de linha (`--`) e comentários de bloco (`(* ... *)`) com **aninhamento arbitrário**, controlado por contador de profundidade.
+- *Maximal munch* para operadores conflitantes: `<-`, `<=`, `<`, `=>`, `=`.
+- Contagem de linhas precisa, inclusive dentro de comentários e strings multilinha.
+- Emissão de tokens `ERROR` com mensagem descritiva e número da linha, para:
+  - caractere inválido;
+  - identificador iniciado por `_`;
+  - quebra de linha não escapada, caractere nulo ou EOF dentro de string;
+  - string com mais de 1024 caracteres;
+  - comentário de bloco não fechado ou `*)` sem abertura correspondente.
+
+### 🌳 Analisador sintático
+
+- Parser por **descida recursiva**, com uma função por regra da gramática.
+- Lookahead de um token na maior parte da gramática e de dois tokens para distinguir atribuição (`x <- expr`) de outras expressões.
+- Cobertura completa da gramática de expressões: `if`, `while`, `case`, `let`, blocos, `new`, `isvoid`, `not`, `~`, operadores aritméticos e relacionais, atribuição e os três tipos de despacho (dinâmico, estático com `@` e abreviado com `self` implícito).
+- Precedência de operadores codificada pelo encadeamento das regras, conforme a seção 11.1 do manual.
+- Associatividade à esquerda para operadores binários, obtida pela eliminação da recursão à esquerda (`1 - 2 - 3` → `(1 - 2) - 3`).
+- Validação de restrições estruturais: programa vazio, bloco vazio, `case` sem ramos e `let` sem declarações são rejeitados.
+- Mensagens de erro legíveis, com o token esperado e o encontrado (ex.: `Esperado 'else', encontrado 'fi'`).
+
+### 🖨️ Visualização da AST
+
+- Impressão indentada da árvore sintática, com número da linha de origem de cada construção relevante.
+
+---
+
+## 🛠️ Tecnologias utilizadas
+
+| Tecnologia | Uso |
+|---|---|
+| 🐍 **Python 3.10+** | Linguagem de implementação |
+| 📦 `dataclasses` | Definição dos tokens e dos nós da AST |
+| 🏷️ `enum` | Enumeração dos tipos de token |
+| 🔡 `string` | Conjuntos de caracteres do analisador léxico |
+
+O projeto utiliza **somente a biblioteca padrão do Python**. Nenhum gerador de analisadores (como Flex, Bison, PLY ou ANTLR) foi usado: léxico e sintático foram escritos manualmente.
+
+---
+
+## 📋 Pré-requisitos
+
+- **Python 3.10 ou superior** — obrigatório, pois o código usa a sintaxe de união de tipos com `|` (ex.: `int | str | None`) nas anotações das dataclasses.
+- **Git** — para clonar o repositório.
+
+Verifique sua versão do Python com:
 
 ```bash
+python --version
+```
+
+---
+
+## 🚀 Como rodar o projeto
+
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/<seu-usuario>/cool-compiler.git
+cd cool-compiler
+```
+
+### 2. (Opcional) Criar um ambiente virtual
+
+Como não há dependências externas, este passo é opcional, mas recomendado para manter o ambiente isolado.
+
+```bash
+python -m venv .venv
+
+# Linux / macOS
+source .venv/bin/activate
+
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+```
+
+### 3. Instalar dependências
+
+Não há dependências a instalar. 🎉
+
+### 4. Executar o compilador
+
+O ponto de entrada é o módulo `coolc.main`, que recebe o caminho de um arquivo `.cl`. Execute a partir da raiz do repositório:
+
+```bash
+python -m coolc.main exemplos/teste_parser.cl
+```
+
+Saída esperada:
+
+```text
+Program
+  Class Main  (linha 1)
+    Attribute x: Int  (linha 2)
+      Int 42
+    Attribute nome: String  (linha 3)
+      String 'teste'
+    Attribute flag: Bool  (linha 4)
+    Method f(a: Int, b: Int): Int  (linha 5)
+      Identifier a
+    Method g(): Object  (linha 6)
+      Identifier flag
+  Class Segunda inherits Main  (linha 9)
+    Method h(): Int  (linha 10)
+      Int 1
+```
+
+### 5. Outros exemplos
+
+```bash
+# Programa interativo clássico com let, blocos e despacho
+python -m coolc.main exemplos/hello.cl
+
+# Arquivo de cobertura: comentários aninhados, escapes, case, while, despacho estático
 python -m coolc.main exemplos/cobertura.cl
 ```
 
-A saída é a árvore sintática abstrata em formato indentado, com dois espaços
-por nível de aninhamento:
+### ⚠️ Tratamento de erros
 
-```
-Program
-  Class Cobertura inherits IO  (linha 7)
-    Method aritmetica(): Int  (linha 24)
-      BinOp '-'
-        BinOp '+'
-          Identifier zero
-          Identifier normal
-        BinOp '/'
-          BinOp '*'
-            Identifier com_zeros
-            Int 2
-          Int 1
+Em caso de erro, o compilador informa a fase, a linha e a causa, encerrando com código de saída `1`:
+
+```text
+Erro léxico na linha 3: String não foi fechada
 ```
 
-Erros léxicos são relatados antes da análise sintática e interrompem a
-execução: não faz sentido montar uma árvore a partir de tokens inválidos.
+```text
+Erro de sintaxe na linha 5: Esperado 'else', encontrado 'fi'
+```
 
 ---
 
-## Estrutura do projeto
+## 🔐 Variáveis de ambiente
 
-```
+**Não aplicável.** O projeto não utiliza arquivo `.env` nem depende de variáveis de ambiente. Toda a entrada é fornecida pelo arquivo `.cl` passado na linha de comando.
+
+---
+
+## 📁 Estrutura do projeto
+
+```text
 cool-compiler/
 ├── coolc/
 │   ├── tokens.py       # tipos de token, estrutura Token, tabela de reservadas
@@ -54,230 +181,15 @@ cool-compiler/
 │   ├── tokens.md       # especificação léxica
 │   └── parser.md       # especificação sintática
 ├── exemplos/           # programas COOL de teste
-└── tests/
+└── tests/              # testes automatizados (em construção)
 ```
 
 ---
 
-## Fase 1 — Análise léxica
+## 📚 Documentação
 
-### `tokens.py`
+As decisões de projeto e as especificações de cada fase estão documentadas em detalhe:
 
-Define o vocabulário do analisador:
-
-- **`TokenType`** — enum com os 43 tipos de token.
-- **`Token`** — `dataclass` imutável (`frozen=True`) com tipo, linha e valor
-  opcional.
-- **`KEYWORDS`** — dicionário das 17 palavras reservadas que geram token sem
-  valor.
-- **`describe`** — converte um tipo de token em texto legível para mensagens
-  de erro, exibindo `';'` em vez de `SEMI`.
-
-### `lexer.py`
-
-Analisador escrito manualmente, sem gerador. A classe `Lexer` mantém três
-campos de estado — texto, posição e linha — mais a linha de início do token
-corrente.
-
-Quatro primitivas isolam todo o acesso à posição:
-
-| Primitiva | Função |
-|---|---|
-| `at_end()` | A posição ultrapassou o fim do texto? |
-| `peek(offset)` | Olha um caractere adiante **sem consumir** |
-| `advance()` | Consome e devolve o caractere atual |
-| `match(char)` | Consome apenas se o caractere for o esperado |
-
-Nenhum outro método toca a posição diretamente. Isso garante duas invariantes:
-a contagem de linhas nunca dessincroniza, e o retrocesso é impossível por
-construção.
-
-### Pontos técnicos
-
-**Comentários de bloco aninhados.** COOL permite aninhamento em `(* ... *)`,
-diferente de C. Uma busca ingênua pelo primeiro `*)` quebraria em
-`(* a (* b *) c *)`. A implementação mantém um contador de profundidade,
-encerrando apenas quando ele retorna a zero.
-
-**Contagem de linha centralizada.** O incremento ocorre exclusivamente dentro
-de `advance()`. Como todo consumo de caractere passa por ali — inclusive
-dentro de comentários e de strings multilinha — a contagem permanece correta
-sem verificações espalhadas pelo código.
-
-**Maximal munch.** Reconhece-se sempre o maior lexema possível a partir da
-posição atual, implementado pela separação entre `peek` e `advance`. Resolve
-os conflitos `<` / `<-` / `<=`, `=` / `=>`, `-` / `--`, `(` / `(*` e
-`*` / `*)`. O mesmo princípio explica por que o identificador é consumido por
-completo antes da consulta à tabela de reservadas: `CLASS_maiusculo` é um
-identificador de tipo, não `class` seguido de `_maiusculo`.
-
----
-
-## Fase 2 — Análise sintática
-
-Implementada por **descida recursiva**, mantendo a abordagem manual da fase
-anterior. Cada regra da gramática corresponde a um método, e a recursão mútua
-entre eles reproduz a estrutura da gramática.
-
-### `ast.py`
-
-Dezoito tipos de nó, todos `dataclass` sem comportamento.
-
-### `parser.py`
-
-A classe `Parser` mantém a lista de tokens e a posição. As primitivas são
-análogas às do lexer, um nível acima — operam sobre tokens em vez de
-caracteres:
-
-| Primitiva | Função |
-|---|---|
-| `peek(offset)` | Token atual ou adiante, **sem consumir** |
-| `advance()` | Consome e devolve o token atual |
-| `check(tipo)` | O token atual é deste tipo? |
-| `expect(tipo)` | Consome o token exigido, ou falha |
-
-A divisão entre `check` e `expect` é deliberada: `check` **pergunta**, para
-escolher entre alternativas ou detectar construções opcionais; `expect`
-**exige**, nas partes que a gramática determina como fixas.
-
-### Cadeia de precedência
-
-Não há tabela de precedência no código. A precedência resulta do
-encadeamento das regras: operadores mais fracos ficam nas regras mais externas
-e, portanto, mais próximos da raiz da árvore. Como a avaliação ocorre de baixo
-para cima, o que está mais interno é avaliado primeiro.
-
-```
-parse_expr                      <-              (mais fraco)
-  parse_not                     not
-    parse_comparison            < <= =
-      parse_arith               + -
-        parse_term              * /
-          parse_isvoid          isvoid
-            parse_neg           ~
-              parse_dispatch    . @   (mais forte)
-                parse_atom
-```
-
-### Transformações sobre a gramática do manual
-
-Três ajustes foram necessários:
-
-**Eliminação da recursão à esquerda.** Regras como `expr ::= expr + term`
-produziriam uma função cuja primeira ação é chamar a si mesma sem consumir
-token algum. A reescrita troca a recursão por um laço, e o nó acumulado
-torna-se o filho esquerdo do novo nó — é isso que produz associatividade à
-esquerda.
-
-**Comparações não associam.** O manual determina que `<`, `<=` e `=` não
-associam, então `1 < 2 < 3` é inválido. A regra correspondente usa `if` em vez
-de `while`.
-
-**Fatoração à esquerda em `feature`.** As duas alternativas — método e
-atributo — começam com `OBJECTID`. Consumindo o prefixo comum antes da
-decisão, o lookahead de dois tokens vira um teste simples sobre o token
-seguinte.
-
-### A ambiguidade do `let`
-
-O manual determina que o corpo de um `let` se estende o mais à direita
-possível. Em `let x: Int <- 1 in let y: Int <- 2 in x + y`, o corpo do
-primeiro `let` é o segundo por inteiro.
-
-**Na descida recursiva resolve-se sozinho**: a função que trata o corpo
-chama a regra de expressão mais externa, que naturalmente consome o 
-máximo possível.
-
----
-
-## Decisões de projeto
-
-As especificações completas estão em [`docs/tokens.md`](docs/tokens.md) e
-[`docs/parser.md`](docs/parser.md). As decisões abaixo são as que exigiram
-julgamento além do que o manual define.
-
-### Booleanos são literais, não palavras reservadas
-
-O manual lista 19 palavras reservadas, incluindo `true` e `false`. Este
-projeto emite 17 tokens de reservada; os booleanos geram `BOOL_CONST`
-carregando o valor.
-
-Justificativa: na Figura 1 do manual, `true` e `false` aparecem como
-alternativas de `expr`, ao lado de `integer` e `string` — como valores, não
-como estrutura. Um token com valor evita duplicar regras na análise sintática.
-
-A regra especial de maiúsculas é preservada: apenas a primeira letra precisa
-ser minúscula, de modo que `tRuE` é booleano e `True` é identificador de tipo.
-
-### Strings são armazenadas já interpretadas
-
-As sequências de escape são resolvidas na tokenização. O literal `"a\nb"`
-produz um valor de três caracteres.
-
-Justificativa: adiar significa reprocessar a string quando o contexto de
-posição no arquivo já se perdeu e erros de escape não podem mais ser
-localizados. Como consequência, o limite de 1024 caracteres é aferido sobre o
-texto interpretado — o manual não esclarece qual dos dois vale.
-
-### Um nó para todas as operações binárias
-
-`BinOperation` carrega o operador como campo, em vez de sete classes
-distintas. As regras de tipo são idênticas dentro de cada grupo, e separá-las
-duplicaria código na análise semântica e na geração de código.
-
-### Despacho abreviado na AST
-
-`metodo(a, b)` é registrado como despacho dinâmico com `self` como receptor,
-conforme o manual define. A alternativa obrigaria as fases seguintes a
-tratar dois casos equivalentes.
-
-### Parênteses não geram nó
-
-`(1 + 2) * 3` e `1 + 2 * 3` produzem árvores diferentes, mas em nenhuma delas
-existe um nó de parêntese: a diferença está na forma, não no conteúdo.
-
-### Políticas de erro distintas por fase
-
-**Léxico: recuperação.** O analisador não interrompe no primeiro erro. Emite
-um token `ERROR` com mensagem e linha, avança até um ponto de retomada seguro
-e continua, permitindo relatar vários problemas por execução. Os pontos de
-retomada variam conforme o erro:
-
-| Erro | Retomada |
-|---|---|
-| Caractere inválido | O caractere já foi consumido |
-| Identificador iniciado por `_` | O lexema já foi consumido |
-| Comentário ou string não fechados | Fim do arquivo |
-| Caractere nulo ou limite de tamanho em string | Descarta até a aspa de fechamento |
-| Quebra de linha não escapada em string | Não descarta nada |
-
-**Sintático: aborto no primeiro erro.**
-
-### Ambiguidade do caractere nulo
-
-O manual afirma que uma string não pode conter *the null (character `\0`)*, o
-que admite duas leituras: o byte nulo literal ou a sequência de escape. Pela
-regra geral do próprio manual, `\0` produziria o caractere `0`.
-
-Decisão adotada: apenas o byte nulo literal é erro. Ponto a confirmar.
-
-### Fechamento de comentário sem abertura
-
-O manual não define o comportamento de um `*)` isolado. Tratado como erro
-léxico, por decisão própria.
-
----
-
-## Abordagem manual
-
-Este projeto adota a implementação manual nas duas fases. A gramática
-declarativa transfere o reconhecimento para uma tabela LALR gerada — um
-artefato que não se lê e cujos conflitos são difíceis de diagnosticar sem
-teoria de parsing. Escrever o reconhecedor à mão custa mais digitação, mas
-mantém controle sobre mensagens de erro, recuperação e formato da saída.
-
----
-
-## Referências
-
-- Aiken, A. *The Cool Reference Manual*.
+- 📄 [`docs/tokens.md`](docs/tokens.md) — especificação léxica: tokens, literais, escapes, comentários e decisões registradas.
+- 📄 [`docs/parser.md`](docs/parser.md) — especificação sintática: gramática, transformações aplicadas e tabela de precedência.
+- 🔗 [Manual de Referência de COOL (Stanford)](https://theory.stanford.edu/~aiken/software/cool/cool-manual.pdf) — especificação oficial da linguagem.
