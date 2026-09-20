@@ -298,7 +298,3 @@ erro foi detectado, não necessariamente a da construção que o causou.
 Os textos de `X` e `Y` vêm de `describe()`, em `tokens.py`: símbolos e
 palavras reservadas aparecem entre aspas (`'fi'`, `';'`); identificadores,
 literais e `EOF` aparecem pelo nome do tipo (`objectid`, `eof`).
-
-Observação: `Expressão inesperada` usa `token.tipo.name` em vez de
-`describe()`, e por isso exibe `RBRACE` em vez de `'}'`. Inconsistência a
-corrigir.
