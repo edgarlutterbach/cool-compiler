@@ -186,7 +186,7 @@ class Parser:
             self.expect(TokenType.RPAREN)
             return node
 
-        raise ParseError(f"Expressão inesperada: {token.tipo.name}", token.linha)
+        raise ParseError(f"Esperado {describe(token_type)}, encontrado {describe(found.tipo)}", found.linha)
 
     # term ::= isvoid_expr [[ (* | /) isvoid_expr ]]*
     def parse_term(self):
