@@ -51,7 +51,7 @@ class Parser:
 
         return ast.Program(classes)
 
-    # class ::= class TYPEID [ inherits TYPEID ] { [[ feature ; ]] }
+    # class ::= class TYPEID [ inherits TYPEID ] { [[ feature ; ]]* }
     def parse_class(self):
         keyword = self.expect(TokenType.CLASS)
         name = self.expect(TokenType.TYPEID).valor
@@ -186,7 +186,7 @@ class Parser:
             self.expect(TokenType.RPAREN)
             return node
 
-        raise ParseError(f"Esperado {describe(token_type)}, encontrado {describe(found.tipo)}", found.linha)
+        raise ParseError(f"Expressão inesperada: {describe(token.tipo)}", token.linha)
 
     # term ::= isvoid_expr [[ (* | /) isvoid_expr ]]*
     def parse_term(self):
