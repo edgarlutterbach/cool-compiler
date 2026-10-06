@@ -34,7 +34,7 @@ def basic_classes():
         ast.Method("substr", [ast.Formal("i", "Int", BUILTIN_LINE), ast.Formal("l", "Int", BUILTIN_LINE)], "String", None, BUILTIN_LINE),
     ], BUILTIN_LINE)
 
-    return [object_class, io_class, int_class, bool_class]
+    return [object_class, io_class, int_class, string_class, bool_class]
 
 # Classe do analisador semântico
 class SemanticAnalyzer:
@@ -43,4 +43,23 @@ class SemanticAnalyzer:
         self.classes = {}
 
     def analyze(self):
+        self.register_classes()
         return self.classes
+
+    def register_classes(self):
+        basics = basic_classes()
+        basic_names = {cls.name for cls in basics}
+
+        for cls in basics:
+            self.classes[cls.name] = cls
+
+        for cls in self.program.classes:
+            if cls.name == "SELF_TYPE":
+                raise SemanticError("'SELF_TYPE' não pode ser usado como nome de classe", cls.line)
+            elif cls.name in basic_names:
+                raise SemanticError(f"Classe básica '{cls.name}' não pode ser redefinida", cls.line)
+            elif cls.name in self.classes:
+                first = self.classes[cls.name]
+                raise SemanticError(f"Classe '{cls.name}' já foi declarada na linha {first.line}", cls.line)
+            else:
+                self.classes[cls.name] = cls
