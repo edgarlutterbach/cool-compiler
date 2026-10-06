@@ -2,6 +2,7 @@ import sys
 
 from coolc.lexer import Lexer
 from coolc.parser import Parser, ParseError
+from coolc.semantic import SemanticAnalyzer, SemanticError
 from coolc.tokens import TokenType
 from coolc.astprinter import print_tree
 
@@ -39,6 +40,12 @@ def main():
         tree = Parser(tokens).parse_program()
     except ParseError as error:
         print(f"Erro de sintaxe na linha {error.line}: {error.message}")
+        sys.exit(1)
+
+    try:
+        SemanticAnalyzer(tree).analyze()
+    except SemanticError as error:
+        print(f"Erro semântico na linha {error.line}: {error.message}")
         sys.exit(1)
 
     print_tree(tree)

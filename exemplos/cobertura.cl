@@ -18,7 +18,7 @@ class Cobertura inherits IO {
     com_aspas: String <- "ele disse \"ola\" e saiu";
     com_escapes: String <- "tab:\t barra:\\ fim:\n";
     escape_generico: String <- "\q vira apenas q";
-    multilinha: String <- "primeira parte \
+    multilinha: String  "primeira parte \
 segunda parte";
 
     aritmetica(): Int {
