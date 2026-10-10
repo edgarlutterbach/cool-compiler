@@ -54,6 +54,7 @@ class SemanticAnalyzer:
         self.check_cycles()
         self.check_main()
         self.collect_features()
+        self.check_feature_types()
         return self.classes
 
     # Registra as classes básicas e as do programa na tabela de classes
@@ -129,3 +130,35 @@ class SemanticAnalyzer:
 
             self.attributes[cls.name] = attributes
             self.methods[cls.name] = methods
+
+    # Tipo declarável em atributo ou retorno: classe registrada ou SELF_TYPE
+    def is_valid_type(self, type_name):
+        return type_name == "SELF_TYPE" or type_name in self.classes
+
+    # Valida os tipos citados nas features das classes do programa
+    def check_feature_types(self):
+        for cls in self.program.classes:
+            for feature in cls.features:
+                if isinstance(feature, ast.Method):
+                    self.check_method_types(cls, feature)
+                elif not self.is_valid_type(feature.type_name):
+                    raise SemanticError(f"Atributo '{feature.name}' da classe '{cls.name}' tem tipo inexistente '{feature.type_name}'", feature.line)
+
+    # Valida os parâmetros formais e o tipo de retorno de um método
+    def check_method_types(self, cls, method):
+        names = set()
+
+        for formal in method.formals:
+            if formal.name == "self":
+                raise SemanticError(f"Parâmetro não pode se chamar 'self' (método '{method.name}')", formal.line)
+            if formal.name in names:
+                raise SemanticError(f"Parâmetro '{formal.name}' declarado mais de uma vez no método '{method.name}'", formal.line)
+            names.add(formal.name)
+
+            if formal.type_name == "SELF_TYPE":
+                raise SemanticError(f"Parâmetro '{formal.name}' do método '{method.name}' não pode ter tipo 'SELF_TYPE'", formal.line)
+            if formal.type_name not in self.classes:
+                raise SemanticError(f"Parâmetro '{formal.name}' do método '{method.name}' tem tipo inexistente '{formal.type_name}'", formal.line)
+
+        if not self.is_valid_type(method.return_type):
+            raise SemanticError(f"Método '{method.name}' da classe '{cls.name}' tem tipo de retorno inexistente '{method.return_type}'", method.line)
