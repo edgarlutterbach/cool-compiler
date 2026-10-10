@@ -10,6 +10,9 @@ class SemanticError(Exception):
 # Linha dos nós da árvore
 BUILTIN_LINE = 0
 
+# Classes que nenhuma outra pode herdar
+FORBIDDEN_PARENTS = {"Int", "String", "Bool", "SELF_TYPE"}
+
 # Método para construção de classes básicas de COOL
 def basic_classes():
     object_class = ast.Class("Object", None, [
@@ -44,6 +47,8 @@ class SemanticAnalyzer:
 
     def analyze(self):
         self.register_classes()
+        self.check_parents()
+        self.check_cycles()
         return self.classes
 
     def register_classes(self):
@@ -63,3 +68,29 @@ class SemanticAnalyzer:
                 raise SemanticError(f"Classe '{cls.name}' já foi declarada na linha {first.line}", cls.line)
             else:
                 self.classes[cls.name] = cls
+
+    def check_parents(self):
+        for cls in self.program.classes:
+            if cls.parent is None:
+                cls.parent = "Object"
+                continue
+
+            if cls.parent in FORBIDDEN_PARENTS:
+                raise SemanticError(f"Classe '{cls.name}' não pode herdar de '{cls.parent}'", cls.line)
+
+            if cls.parent not in self.classes:
+                raise SemanticError(f"Classe '{cls.name}' herda de '{cls.parent}', que não foi declarada", cls.line)
+
+    def check_cycles(self):
+        for cls in self.program.classes:
+            visited = set()
+            current = cls.name
+
+            while current != "Object":
+                if current in visited:
+                    cyclic_class = self.classes[current]
+                    raise SemanticError(f"Herança cíclica: a classe '{cyclic_class.name}' herda de si mesma", cyclic_class.line)
+
+                visited.add(current)
+                current = self.classes[current].parent
+
