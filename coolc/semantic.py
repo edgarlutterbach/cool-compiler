@@ -2,7 +2,7 @@ import coolc.ast as ast
 
 # Classe para erro
 class SemanticError(Exception):
-    def __init__(self, message, line):
+    def __init__(self, message, line=None):
         super().__init__(message)
         self.message = message
         self.line = line
@@ -45,12 +45,15 @@ class SemanticAnalyzer:
         self.program = program
         self.classes = {}
 
+    # Ponto de entrada
     def analyze(self):
         self.register_classes()
         self.check_parents()
         self.check_cycles()
+        self.check_main()
         return self.classes
 
+    # Registra as classes básicas e as do programa na tabela de classes
     def register_classes(self):
         basics = basic_classes()
         basic_names = {cls.name for cls in basics}
@@ -69,6 +72,7 @@ class SemanticAnalyzer:
             else:
                 self.classes[cls.name] = cls
 
+    # Valida o pai de cada classe do programa e preenche o pai implícito
     def check_parents(self):
         for cls in self.program.classes:
             if cls.parent is None:
@@ -81,6 +85,7 @@ class SemanticAnalyzer:
             if cls.parent not in self.classes:
                 raise SemanticError(f"Classe '{cls.name}' herda de '{cls.parent}', que não foi declarada", cls.line)
 
+    # Detecta ciclos de herança subindo a cadeira de pais de cada classe
     def check_cycles(self):
         for cls in self.program.classes:
             visited = set()
@@ -94,3 +99,7 @@ class SemanticAnalyzer:
                 visited.add(current)
                 current = self.classes[current].parent
 
+    # Exige a classe Main, ponto de partida da execução
+    def check_main(self):
+        if "Main" not in self.classes:
+            raise SemanticError("Programa sem classe 'Main'")

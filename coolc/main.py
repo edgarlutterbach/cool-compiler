@@ -45,7 +45,10 @@ def main():
     try:
         SemanticAnalyzer(tree).analyze()
     except SemanticError as error:
-        print(f"Erro semântico na linha {error.line}: {error.message}")
+        if error.line is None:
+            print(f"Erro semântico: {error.message}")
+        else:
+            print(f"Erro semântico na linha {error.line}: {error.message}")
         sys.exit(1)
 
     print_tree(tree)

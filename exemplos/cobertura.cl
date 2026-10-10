@@ -76,3 +76,7 @@ segunda parte";
 class Segunda {
     metodo(a: Int, b: Int): Int { a + b };
 };
+
+class Main {
+    main(): Object { (new Cobertura).despacho() };
+};
