@@ -4,6 +4,7 @@ class Main {
     flag: Bool;
     f(a: Int, b: Int): Int { a };
     g(): Object { flag };
+    main(): Object { 0 };
 };
 
 class Segunda inherits Main {

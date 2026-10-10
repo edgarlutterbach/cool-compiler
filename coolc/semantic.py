@@ -56,6 +56,7 @@ class SemanticAnalyzer:
         self.collect_features()
         self.check_feature_types()
         self.check_inheritance()
+        self.check_main_method()
         return self.classes
 
     # Registra as classes básicas e as do programa na tabela de classes
@@ -206,3 +207,18 @@ class SemanticAnalyzer:
         if method.return_type != original.return_type:
             raise SemanticError(
                 f"Método '{method.name}' redefinido em '{cls.name}' com retorno '{method.return_type}', mas declarado em '{ancestor}' com retorno '{original.return_type}'", method.line)
+
+    # Exige que Main declare main() sem parâmetros
+    def check_main_method(self):
+        main_class = self.classes["Main"]
+        main_method = self.methods["Main"].get("main")
+
+        if main_method is None:
+            inherited = self.find_inherited(self.methods, main_class, "main")
+            if inherited is not None:
+                ancestor, _ = inherited
+                raise SemanticError(f"Classe 'Main' não herda 'main' de '{ancestor}', mas precisa declará-lo", main_class.line)
+            raise SemanticError("Classe 'Main' não declara o método 'main'", main_class.line)
+
+        if main_method.formals:
+            raise SemanticError(f"Método 'main' da classe 'Main' não pode ter parâmetros (declarado com {len(main_method.formals)})", main_method.line)
