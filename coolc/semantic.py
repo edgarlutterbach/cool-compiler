@@ -55,6 +55,7 @@ class SemanticAnalyzer:
         self.check_main()
         self.collect_features()
         self.check_feature_types()
+        self.check_inheritance()
         return self.classes
 
     # Registra as classes básicas e as do programa na tabela de classes
@@ -89,7 +90,7 @@ class SemanticAnalyzer:
             if cls.parent not in self.classes:
                 raise SemanticError(f"Classe '{cls.name}' herda de '{cls.parent}', que não foi declarada", cls.line)
 
-    # Detecta ciclos de herança subindo a cadeira de pais de cada classe
+    # Detecta ciclos de herança subindo a cadeia de pais de cada classe
     def check_cycles(self):
         for cls in self.program.classes:
             visited = set()
@@ -162,3 +163,46 @@ class SemanticAnalyzer:
 
         if not self.is_valid_type(method.return_type):
             raise SemanticError(f"Método '{method.name}' da classe '{cls.name}' tem tipo de retorno inexistente '{method.return_type}'", method.line)
+
+    # Busca a feature mais próxima com esse nome nos ancestrais da classe, sem incluir a própria
+    def find_inherited(self, table, cls, name):
+        current = cls.parent
+
+        while current is not None:
+            if name in table[current]:
+                return current, table[current][name]
+            current = self.classes[current].parent
+
+        return None
+
+    # Valida as regras de herança de features
+    def check_inheritance(self):
+        for cls in self.program.classes:
+            for feature in cls.features:
+                if isinstance(feature, ast.Method):
+                    self.check_override(cls, feature)
+                    continue
+
+                inherited = self.find_inherited(self.attributes, cls, feature.name)
+                if inherited is not None:
+                    ancestor, _ = inherited
+                    raise SemanticError(f"Atributo '{feature.name}' da classe '{cls.name}' redefine atributo herdado de '{ancestor}'", feature.line)
+
+    # Compara a assinatura de um método com a do método herdado que ele redefine
+    def check_override(self, cls, method):
+        inherited = self.find_inherited(self.methods, cls, method.name)
+
+        if inherited is None:
+            return
+        ancestor, original = inherited
+
+        if len(method.formals) != len(original.formals):
+            raise SemanticError(f"Método '{method.name}' redefinido em '{cls.name}' com {len(method.formals)} parâmetro(s), mas declarado em '{ancestor}' com {len(original.formals)}", method.line)
+
+        for formal, original_formal in zip(method.formals, original.formals):
+            if formal.type_name != original_formal.type_name:
+                raise SemanticError(f"Parâmetro '{formal.name}' do método '{method.name}' tem tipo '{formal.type_name}' em '{cls.name}', mas '{original_formal.type_name}' em '{ancestor}'", formal.line)
+
+        if method.return_type != original.return_type:
+            raise SemanticError(
+                f"Método '{method.name}' redefinido em '{cls.name}' com retorno '{method.return_type}', mas declarado em '{ancestor}' com retorno '{original.return_type}'", method.line)
