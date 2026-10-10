@@ -44,6 +44,8 @@ class SemanticAnalyzer:
     def __init__(self, program):
         self.program = program
         self.classes = {}
+        self.attributes = {}
+        self.methods = {}
 
     # Ponto de entrada
     def analyze(self):
@@ -51,6 +53,7 @@ class SemanticAnalyzer:
         self.check_parents()
         self.check_cycles()
         self.check_main()
+        self.collect_features()
         return self.classes
 
     # Registra as classes básicas e as do programa na tabela de classes
@@ -103,3 +106,26 @@ class SemanticAnalyzer:
     def check_main(self):
         if "Main" not in self.classes:
             raise SemanticError("Programa sem classe 'Main'")
+
+    # Registra os atributos e métodos declarados diretamente em cada classe
+    def collect_features(self):
+        for cls in self.classes.values():
+            attributes = {}
+            methods = {}
+
+            for feature in cls.features:
+                if isinstance(feature, ast.Method):
+                    if feature.name in methods:
+                        first = methods[feature.name]
+                        raise SemanticError(f"Método '{feature.name}' já foi declarado na classe '{cls.name}', na linha {first.line}", feature.line)
+                    methods[feature.name] = feature
+                else:
+                    if feature.name == "self":
+                        raise SemanticError(f"Atributo não pode se chamar 'self' (classe '{cls.name}')", feature.line)
+                    if feature.name in attributes:
+                        first = attributes[feature.name]
+                        raise SemanticError(f"Atributo '{feature.name}' já foi declarado na classe '{cls.name}', na linha {first.line}", feature.line)
+                    attributes[feature.name] = feature
+
+            self.attributes[cls.name] = attributes
+            self.methods[cls.name] = methods
