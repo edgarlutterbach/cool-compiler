@@ -66,6 +66,8 @@ class SemanticAnalyzer:
         self.classes = {}
         self.attributes = {}
         self.methods = {}
+        self.current_class = None
+        self.symbols = None
 
     # Ponto de entrada
     def analyze(self):
@@ -77,6 +79,7 @@ class SemanticAnalyzer:
         self.check_feature_types()
         self.check_inheritance()
         self.check_main_method()
+        self.check_expressions()
         return self.classes
 
     # Registra as classes básicas e as do programa na tabela de classes
@@ -278,3 +281,37 @@ class SemanticAnalyzer:
             return None
         _, method = inherited
         return method
+
+    # Percorre as features de cada classe do programa com os escopos corretos
+    def check_expressions(self):
+        for cls in self.program.classes:
+            self.current_class = cls
+            self.symbols = SymbolTable()
+
+            self.symbols.enter_scope()
+            self.symbols.add("self", "SELF_TYPE")
+            current = cls.name
+            while current is not None:
+                for attribute in self.attributes[current].values():
+                    self.symbols.add(attribute.name, attribute.type_name)
+                current = self.classes[current].parent
+
+            for feature in cls.features:
+                if isinstance(feature, ast.Method):
+                    self.symbols.enter_scope()
+                    for formal in feature.formals:
+                        self.symbols.add(formal.name, formal.type_name)
+                    self.visit(feature.body)
+                    self.symbols.exit_scope()
+                elif feature.init is not None:
+                    self.visit(feature.init)
+
+            self.symbols.exit_scope()
+
+    def visit(self, node):
+        rule = getattr(self, f"visit_{type(node).__name__}", self.visit_default)
+        node.expr_type = rule(node)
+        return node.expr_type
+
+    def visit_default(self, node):
+        return None

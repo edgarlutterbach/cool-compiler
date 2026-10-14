@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from coolc.tokens import TokenType
+from dataclasses import dataclass, field
 
 # Nós da árvore sintática abstrata
 # Cada classe corresponde a uma construção da gramática de COOL.
@@ -42,29 +43,33 @@ class Formal:
     type_name: str
     line: int
 
+@dataclass
+class Expression:
+    expr_type: str | None = field(default=None, kw_only=True)
+
 # Folhas da árvore. Onde a recursão termina
 
 # integer
 @dataclass
-class IntLiteral:
+class IntLiteral(Expression):
     value: int
     line: int
 
 # string
 @dataclass
-class StringLiteral:
+class StringLiteral(Expression):
     value: str
     line: int
 
 # bool (true | false)
 @dataclass
-class BoolLiteral:
+class BoolLiteral(Expression):
     value: bool
     line: int
 
 # identificador
 @dataclass
-class Identifier:
+class Identifier(Expression):
     name: str
     line: int
 
@@ -72,7 +77,7 @@ class Identifier:
 
 # Operação binária -- expr <op> expr, sendo <op> em + - * / < <= =
 @dataclass
-class BinOperation:
+class BinOperation(Expression):
     operator: TokenType
     left: object
     right: object
@@ -80,21 +85,21 @@ class BinOperation:
 
 # Operaçao unária -- ~expr | not expr | isvoid expr
 @dataclass
-class UnaryOperation:
+class UnaryOperation(Expression):
     operator: TokenType
     operand: object
     line: int
 
 # Atribução -- OBJECTID <- expr
 @dataclass
-class Assign:
+class Assign(Expression):
     name: str
     value: object
     line: int
 
 # Despacho de método -- expr[@TYPE].ID( args )
 @dataclass
-class Dispatch:
+class Dispatch(Expression):
     receiver: object
     static_type: str | None
     name: str
@@ -103,7 +108,7 @@ class Dispatch:
 
 # Condicional -- if expr then expr else expr fi
 @dataclass
-class If:
+class If(Expression):
     condition: object
     then_branch: object
     else_branch: object
@@ -111,20 +116,20 @@ class If:
 
 # Laço -- while expr loop expr pool
 @dataclass
-class While:
+class While(Expression):
     condition: object
     body: object
     line: int
 
 # Bloco -- { [[ expr ; ]]+ }
 @dataclass
-class Block:
+class Block(Expression):
     expressions: list
     line: int
 
 # Instanciação -- new TYPEID
 @dataclass
-class New:
+class New(Expression):
     type_name: str
     line: int
 
@@ -138,7 +143,7 @@ class LetBinding:
 
 # let ID : TYPE [ <- expr ] [[ , ID : TYPE [ <- expr ] ]]* in expr
 @dataclass
-class Let:
+class Let(Expression):
     bindings: list
     body: object
     line: int
@@ -153,7 +158,7 @@ class CaseBranch:
 
 # case expr of [[ ID : TYPE => expr ; ]]+ esac
 @dataclass
-class Case:
+class Case(Expression):
     expression: object
     branches: list
     line: int
