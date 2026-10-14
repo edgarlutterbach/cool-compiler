@@ -222,3 +222,13 @@ class SemanticAnalyzer:
 
         if main_method.formals:
             raise SemanticError(f"Método 'main' da classe 'Main' não pode ter parâmetros (declarado com {len(main_method.formals)})", main_method.line)
+
+    # Conformidade A <= B: um valor do tipo A pode ser usado onde se espera B
+    def conforms(self, a, b):
+        current = a
+        while current is not None:
+            if current == b:
+                return True
+            current = self.classes[current].parent
+
+        return False
