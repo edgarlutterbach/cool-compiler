@@ -232,3 +232,17 @@ class SemanticAnalyzer:
             current = self.classes[current].parent
 
         return False
+
+    # Join A U B: o menor tipo do qual A e B são subtipos
+    def join(self, a, b):
+        ancestors = set()
+        current = a
+        while current is not None:
+            ancestors.add(current)
+            current = self.classes[current].parent
+
+        current = b
+        while current not in ancestors:
+            current = self.classes[current].parent
+
+        return current
