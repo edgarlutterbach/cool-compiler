@@ -315,3 +315,18 @@ class SemanticAnalyzer:
 
     def visit_default(self, node):
         return None
+
+    def visit_IntLiteral(self, node):
+        return "Int"
+
+    def visit_StringLiteral(self, node):
+        return "String"
+
+    def visit_BoolLiteral(self, node):
+        return "Bool"
+
+    def visit_Identifier(self, node):
+        type_name = self.symbols.lookup(node.name)
+        if type_name is None:
+            raise SemanticError(f"Identificador '{node.name}' não foi declarado", node.line)
+        return type_name
