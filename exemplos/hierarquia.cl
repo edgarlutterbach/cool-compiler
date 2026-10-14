@@ -8,9 +8,13 @@
  *    D
  *)
 
-class A { };
+class A {
+    f(): Int { 0 };
+};
 class B inherits A { };
-class C inherits A { };
+class C inherits A {
+    f(): Int { 1 };
+};
 class D inherits B { };
 
 class Main {

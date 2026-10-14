@@ -246,3 +246,15 @@ class SemanticAnalyzer:
             current = self.classes[current].parent
 
         return current
+
+    # Busca um método no próprio tipo e, se não houver, nos ancestrais
+    # Devolve o nó da definição mais próxima ou None
+    def lookup_method(self, type_name, name):
+        if name in self.methods[type_name]:
+            return self.methods[type_name][name]
+
+        inherited = self.find_inherited(self.methods, self.classes[type_name], name)
+        if inherited is None:
+            return None
+        _, method = inherited
+        return method
