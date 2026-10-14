@@ -39,6 +39,26 @@ def basic_classes():
 
     return [object_class, io_class, int_class, string_class, bool_class]
 
+# Tabela de símbolos com escopos aninhados
+class SymbolTable:
+    def __init__(self):
+        self.scopes = []
+
+    def enter_scope(self):
+        self.scopes.append({})
+
+    def exit_scope(self):
+        self.scopes.pop()
+
+    def add(self, name, type_name):
+        self.scopes[-1][name] = type_name
+
+    def lookup(self, name):
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        return None
+
 # Classe do analisador semântico
 class SemanticAnalyzer:
     def __init__(self, program):
