@@ -256,7 +256,14 @@ class SemanticAnalyzer:
 
     # Conformidade A <= B: um valor do tipo A pode ser usado onde se espera B
     def conforms(self, a, b):
+        if b == "SELF_TYPE":
+            return a == "SELF_TYPE"
+
+        if a == "SELF_TYPE":
+            a = self.current_class.name
+
         current = a
+
         while current is not None:
             if current == b:
                 return True
@@ -382,3 +389,31 @@ class SemanticAnalyzer:
             return "Bool"
 
         return "Bool"
+
+    # Instanciação: new T tem tipo T, e T precisa existir
+    def visit_New(self, node):
+        if not self.is_valid_type(node.type_name):
+            raise SemanticError(f"Tipo inexistente '{node.type_name}' em 'new'", node.line)
+        return node.type_name
+
+    # Bloco: avalia em ordem e tem o tipo da última expressão
+    def visit_Block(self, node):
+        block_type = None
+        for expression in node.expressions:
+            block_type = self.visit(expression)
+        return block_type
+
+    # Atribuição: o valor precisa conformar com o tipo declarado
+    def visit_Assign(self, node):
+        if node.name == "self":
+            raise SemanticError("Não é possível atribuir a 'self'", node.line)
+
+        declared_type = self.symbols.lookup(node.name)
+        if declared_type is None:
+            raise SemanticError(f"Identificador '{node.name}' não foi declarado", node.line)
+
+        value_type = self.visit(node.value)
+        if value_type is not None and not self.conforms(value_type, declared_type):
+            raise SemanticError(f"Atribuição a '{node.name}': tipo '{value_type}' não conforma com o tipo declarado '{declared_type}'", node.line)
+
+        return value_type
