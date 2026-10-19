@@ -310,7 +310,6 @@ class SemanticAnalyzer:
         for cls in self.program.classes:
             self.current_class = cls
             self.symbols = SymbolTable()
-
             self.symbols.enter_scope()
             self.symbols.add("self", "SELF_TYPE")
             current = cls.name
@@ -324,10 +323,16 @@ class SemanticAnalyzer:
                     self.symbols.enter_scope()
                     for formal in feature.formals:
                         self.symbols.add(formal.name, formal.type_name)
-                    self.visit(feature.body)
+                    body_type = self.visit(feature.body)
                     self.symbols.exit_scope()
+
+                    if body_type is not None and not self.conforms(body_type, feature.return_type):
+                        raise SemanticError(f"Método '{feature.name}': tipo do corpo '{body_type}' não conforma com o retorno declarado '{feature.return_type}'", feature.line)
+
                 elif feature.init is not None:
-                    self.visit(feature.init)
+                    init_type = self.visit(feature.init)
+                    if init_type is not None and not self.conforms(init_type, feature.type_name):
+                        raise SemanticError(f"Atributo '{feature.name}': tipo do inicializador '{init_type}' não conforma com o tipo declarado '{feature.type_name}'", feature.line)
 
             self.symbols.exit_scope()
 
