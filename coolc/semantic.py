@@ -273,6 +273,14 @@ class SemanticAnalyzer:
 
     # Join A U B: o menor tipo do qual A e B são subtipos
     def join(self, a, b):
+        if a == b:
+            return a
+
+        if a == "SELF_TYPE":
+            a = self.current_class.name
+        if b == "SELF_TYPE":
+            b = self.current_class.name
+
         ancestors = set()
         current = a
         while current is not None:
@@ -417,3 +425,22 @@ class SemanticAnalyzer:
             raise SemanticError(f"Atribuição a '{node.name}': tipo '{value_type}' não conforma com o tipo declarado '{declared_type}'", node.line)
 
         return value_type
+
+    # Condicional: predicado Bool; tipo é o join dos dois ramos
+    def visit_If(self, node):
+        self.visit(node.condition)
+        self.require_type(node.condition, "Bool", "Predicado do 'if'")
+
+        then_type = self.visit(node.then_branch)
+        else_type = self.visit(node.else_branch)
+
+        if then_type is None or else_type is None:
+            return None
+        return self.join(then_type, else_type)
+
+    # Laço: predicado Bool; o tipo do while é sempre Object
+    def visit_While(self, node):
+        self.visit(node.condition)
+        self.require_type(node.condition, "Bool", "Predicado do 'while'")
+        self.visit(node.body)
+        return "Object"
