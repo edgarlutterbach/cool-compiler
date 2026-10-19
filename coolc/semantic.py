@@ -1,4 +1,5 @@
 import coolc.ast as ast
+from coolc.tokens import TokenType, describe
 
 # Classe para erro
 class SemanticError(Exception):
@@ -12,6 +13,13 @@ BUILTIN_LINE = 0
 
 # Classes que nenhuma outra pode herdar
 FORBIDDEN_PARENTS = {"Int", "String", "Bool", "SELF_TYPE"}
+
+# Operadores binários agrupados pela regra de tipo
+ARITHMETIC_OPERATORS = {TokenType.PLUS, TokenType.MINUS, TokenType.TIMES, TokenType.DIVIDE}
+COMPARISON_OPERATORS = {TokenType.LT, TokenType.LE}
+
+# Tipos que só podem ser comparados com '=' a um valor do mesmo tipo
+BASIC_VALUE_TYPES = {"Int", "String", "Bool"}
 
 # Método para construção de classes básicas de COOL
 def basic_classes():
@@ -308,14 +316,17 @@ class SemanticAnalyzer:
 
             self.symbols.exit_scope()
 
+    # Padrão visitor: chama visit_<NomeDoNó> e anota o tipo devolvido no nó
     def visit(self, node):
         rule = getattr(self, f"visit_{type(node).__name__}", self.visit_default)
         node.expr_type = rule(node)
         return node.expr_type
 
+    # Temporário: nós ainda sem regra de tipo não são verificados
     def visit_default(self, node):
         return None
 
+    # Constantes: o tipo é a classe básica correspondente
     def visit_IntLiteral(self, node):
         return "Int"
 
@@ -325,8 +336,34 @@ class SemanticAnalyzer:
     def visit_BoolLiteral(self, node):
         return "Bool"
 
+    # Identificador: o tipo declarado no escopo visível mais interno
     def visit_Identifier(self, node):
         type_name = self.symbols.lookup(node.name)
         if type_name is None:
             raise SemanticError(f"Identificador '{node.name}' não foi declarado", node.line)
         return type_name
+
+    # Exige que uma expressão já visitada tenha exatamente o tipo esperado
+    def require_type(self, node, expected, description):
+        actual = node.expr_type
+        if actual is None:
+            return
+        if actual != expected:
+            raise SemanticError(f"{description} deve ser tipo '{expected}', mas tem tipo '{actual}'", node.line)
+
+    # Operação binária: aritmética, comparação ou igualdade
+    def visit_BinOperation(self, node):
+        left_type = self.visit(node.left)
+        right_type = self.visit(node.right)
+        symbol = describe(node.operator)
+
+        if node.operator in ARITHMETIC_OPERATORS or node.operator in COMPARISON_OPERATORS:
+            self.require_type(node.left, "Int", f"Operando esquerdo de {symbol}")
+            self.require_type(node.right, "Int", f"Operando direito de {symbol}")
+            return "Int" if node.operator in ARITHMETIC_OPERATORS else "Bool"
+
+        if left_type is not None and right_type is not None:
+            if (left_type in BASIC_VALUE_TYPES or right_type in BASIC_VALUE_TYPES) and left_type != right_type:
+                raise SemanticError(f"Comparação {symbol} entre tipos incompatíveis '{left_type}' e '{right_type}'", node.line)
+
+        return "Bool"
