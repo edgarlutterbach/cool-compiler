@@ -367,3 +367,18 @@ class SemanticAnalyzer:
                 raise SemanticError(f"Comparação {symbol} entre tipos incompatíveis '{left_type}' e '{right_type}'", node.line)
 
         return "Bool"
+
+    # Operação unária: ~, not ou isvoid
+    def visit_UnaryOperation(self, node):
+        self.visit(node.operand)
+        symbol = describe(node.operator)
+
+        if node.operator == TokenType.NEG:
+            self.require_type(node.operand, "Int", f"Operando de {symbol}")
+            return "Int"
+
+        if node.operator == TokenType.NOT:
+            self.require_type(node.operand, "Bool", f"Operando de {symbol}")
+            return "Bool"
+
+        return "Bool"
