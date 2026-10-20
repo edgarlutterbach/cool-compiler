@@ -449,3 +449,27 @@ class SemanticAnalyzer:
         self.require_type(node.condition, "Bool", "Predicado do 'while'")
         self.visit(node.body)
         return "Object"
+
+    # let: cada variável abre um escopo próprio, como lets aninhados
+    def visit_Let(self, node):
+        for binding in node.bindings:
+            if binding.name == "self":
+                raise SemanticError("'self' não pode ser declarado em 'let'", binding.line)
+
+            if not self.is_valid_type(binding.type_name):
+                raise SemanticError(f"Variável '{binding.name}' do 'let' tem tipo inexistente '{binding.type_name}'", binding.line)
+
+            if binding.init is not None:
+                init_type = self.visit(binding.init)
+                if init_type is not None and not self.conforms(init_type, binding.type_name):
+                    raise SemanticError(f"Variável '{binding.name}' do 'let': tipo do inicializador '{init_type}' não conforma com o tipo declarado '{binding.type_name}'", binding.line)
+
+            self.symbols.enter_scope()
+            self.symbols.add(binding.name, binding.type_name)
+
+        body_type = self.visit(node.body)
+
+        for _ in node.bindings:
+            self.symbols.exit_scope()
+
+        return body_type
