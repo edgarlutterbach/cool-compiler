@@ -473,3 +473,37 @@ class SemanticAnalyzer:
             self.symbols.exit_scope()
 
         return body_type
+
+    # case: cada ramo liga uma variável; o tipo é o join dos ramos
+    def visit_Case(self, node):
+        self.visit(node.expression)
+
+        seen_types = {}
+        branch_types = []
+
+        for branch in node.branches:
+            if branch.name == "self":
+                raise SemanticError("'self' não pode ser declarado em ramo de 'case'", branch.line)
+
+            if branch.type_name == "SELF_TYPE":
+                raise SemanticError(f"Ramo '{branch.name}' do 'case' não pode ter tipo 'SELF_TYPE'", branch.line)
+
+            if branch.type_name not in self.classes:
+                raise SemanticError(f"Ramo '{branch.name}' do 'case' tem tipo inexistente '{branch.type_name}'", branch.line)
+
+            if branch.type_name in seen_types:
+                raise SemanticError(f"Tipo '{branch.type_name}' repetido em ramos do 'case' (primeiro na linha {seen_types[branch.type_name]})", branch.line)
+            seen_types[branch.type_name] = branch.line
+
+            self.symbols.enter_scope()
+            self.symbols.add(branch.name, branch.type_name)
+            branch_types.append(self.visit(branch.body))
+            self.symbols.exit_scope()
+
+        if None in branch_types:
+            return None
+
+        case_type = branch_types[0]
+        for branch_type in branch_types[1:]:
+            case_type = self.join(case_type, branch_type)
+        return case_type
