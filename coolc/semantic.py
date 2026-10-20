@@ -1,3 +1,5 @@
+from unicodedata import lookup
+
 import coolc.ast as ast
 from coolc.tokens import TokenType, describe
 
@@ -507,3 +509,35 @@ class SemanticAnalyzer:
         for branch_type in branch_types[1:]:
             case_type = self.join(case_type, branch_type)
         return case_type
+
+    # Despacho: e.f(args), f(args) ou e@T.f(args)
+    def visit_Dispatch(self, node):
+        receiver_type = self.visit(node.receiver)
+        arg_types = [self.visit(arg) for arg in node.args]
+
+        if node.static_type is not None:
+            if node.static_type == "SELF_TYPE":
+                raise SemanticError("Despacho estático não pode usar 'SELF_TYPE'", node.line)
+            if node.static_type not in self.classes:
+                raise SemanticError(f"Tipo inexistente '{node.static_type}' em despacho estático", node.line)
+
+            if not self.conforms(receiver_type, node.static_type):
+                raise SemanticError(f"Despacho estático: tipo do receptor '{receiver_type}' não conforma com '{node.static_type}'", node.line)
+            lookup_type = node.static_type
+        else:
+            lookup_type = self.current_class.name if receiver_type == "SELF_TYPE" else receiver_type
+
+        method = self.lookup_method(lookup_type, node.name)
+        if method is None:
+            raise SemanticError(f"Método '{node.name}' não existe na classe '{lookup_type}'", node.line)
+
+        if len(node.args) != len(method.formals):
+            raise SemanticError(f"Método '{node.name}' espera {len(method.formals)} argumento(s), mas recebeu {len(node.args)}", node.line)
+
+        for arg, arg_type, formal in zip(node.args, arg_types, method.formals):
+            if not self.conforms(arg_type, formal.type_name):
+                raise SemanticError(f"Argumento '{formal.name}' de '{node.name}': tipo '{arg_type}' não conforma com '{formal.type_name}'", arg.line)
+
+        if method.return_type == "SELF_TYPE":
+            return receiver_type
+        return method.return_type
