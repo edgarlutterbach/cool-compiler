@@ -328,12 +328,12 @@ class SemanticAnalyzer:
                     body_type = self.visit(feature.body)
                     self.symbols.exit_scope()
 
-                    if body_type is not None and not self.conforms(body_type, feature.return_type):
+                    if not self.conforms(body_type, feature.return_type):
                         raise SemanticError(f"Método '{feature.name}': tipo do corpo '{body_type}' não conforma com o retorno declarado '{feature.return_type}'", feature.line)
 
                 elif feature.init is not None:
                     init_type = self.visit(feature.init)
-                    if init_type is not None and not self.conforms(init_type, feature.type_name):
+                    if not self.conforms(init_type, feature.type_name):
                         raise SemanticError(f"Atributo '{feature.name}': tipo do inicializador '{init_type}' não conforma com o tipo declarado '{feature.type_name}'", feature.line)
 
             self.symbols.exit_scope()
@@ -344,9 +344,9 @@ class SemanticAnalyzer:
         node.expr_type = rule(node)
         return node.expr_type
 
-    # Temporário: nós ainda sem regra de tipo não são verificados
+    # Todo nó de expressão tem regra própria; chegar aqui é um bug do compilador
     def visit_default(self, node):
-        return None
+        raise NotImplementedError(f"Nó sem regra de tipo: {type(node).__name__}")
 
     # Constantes: o tipo é a classe básica correspondente
     def visit_IntLiteral(self, node):
@@ -368,8 +368,6 @@ class SemanticAnalyzer:
     # Exige que uma expressão já visitada tenha exatamente o tipo esperado
     def require_type(self, node, expected, description):
         actual = node.expr_type
-        if actual is None:
-            return
         if actual != expected:
             raise SemanticError(f"{description} deve ser tipo '{expected}', mas tem tipo '{actual}'", node.line)
 
@@ -384,9 +382,8 @@ class SemanticAnalyzer:
             self.require_type(node.right, "Int", f"Operando direito de {symbol}")
             return "Int" if node.operator in ARITHMETIC_OPERATORS else "Bool"
 
-        if left_type is not None and right_type is not None:
-            if (left_type in BASIC_VALUE_TYPES or right_type in BASIC_VALUE_TYPES) and left_type != right_type:
-                raise SemanticError(f"Comparação {symbol} entre tipos incompatíveis '{left_type}' e '{right_type}'", node.line)
+        if (left_type in BASIC_VALUE_TYPES or right_type in BASIC_VALUE_TYPES) and left_type != right_type:
+            raise SemanticError(f"Comparação {symbol} entre tipos incompatíveis '{left_type}' e '{right_type}'", node.line)
 
         return "Bool"
 
@@ -428,7 +425,7 @@ class SemanticAnalyzer:
             raise SemanticError(f"Identificador '{node.name}' não foi declarado", node.line)
 
         value_type = self.visit(node.value)
-        if value_type is not None and not self.conforms(value_type, declared_type):
+        if not self.conforms(value_type, declared_type):
             raise SemanticError(f"Atribuição a '{node.name}': tipo '{value_type}' não conforma com o tipo declarado '{declared_type}'", node.line)
 
         return value_type
@@ -441,8 +438,6 @@ class SemanticAnalyzer:
         then_type = self.visit(node.then_branch)
         else_type = self.visit(node.else_branch)
 
-        if then_type is None or else_type is None:
-            return None
         return self.join(then_type, else_type)
 
     # Laço: predicado Bool; o tipo do while é sempre Object
@@ -463,7 +458,7 @@ class SemanticAnalyzer:
 
             if binding.init is not None:
                 init_type = self.visit(binding.init)
-                if init_type is not None and not self.conforms(init_type, binding.type_name):
+                if not self.conforms(init_type, binding.type_name):
                     raise SemanticError(f"Variável '{binding.name}' do 'let': tipo do inicializador '{init_type}' não conforma com o tipo declarado '{binding.type_name}'", binding.line)
 
             self.symbols.enter_scope()
@@ -501,9 +496,6 @@ class SemanticAnalyzer:
             self.symbols.add(branch.name, branch.type_name)
             branch_types.append(self.visit(branch.body))
             self.symbols.exit_scope()
-
-        if None in branch_types:
-            return None
 
         case_type = branch_types[0]
         for branch_type in branch_types[1:]:
