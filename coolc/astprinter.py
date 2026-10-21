@@ -1,6 +1,10 @@
 from coolc import ast
 from coolc.tokens import describe
 
+# Tipo estático anotado pela análise semântica; vazio se a árvore não foi analisada
+def type_of(node):
+    return f"  [{node.expr_type}]" if node.expr_type is not None else ""
+
 # Imprime a árvore sintática de forma indentada e legível.
 def print_tree(node, level=0):
     indent = "  " * level
@@ -38,25 +42,25 @@ def print_tree(node, level=0):
     # Operadores
 
     if isinstance(node, ast.BinOperation):
-        print(f"{indent}BinOp {describe(node.operator)}")
+        print(f"{indent}BinOp {describe(node.operator)}{type_of(node)}")
         print_tree(node.left, level + 1)
         print_tree(node.right, level + 1)
         return
 
     if isinstance(node, ast.UnaryOperation):
-        print(f"{indent}UnaryOp {describe(node.operator)}")
+        print(f"{indent}UnaryOp {describe(node.operator)}{type_of(node)}")
         print_tree(node.operand, level + 1)
         return
 
     if isinstance(node, ast.Assign):
-        print(f"{indent}Assign {node.name}  (linha {node.line})")
+        print(f"{indent}Assign {node.name}  (linha {node.line}){type_of(node)}")
         print_tree(node.value, level + 1)
         return
 
     # Controle
 
     if isinstance(node, ast.If):
-        print(f"{indent}If  (linha {node.line})")
+        print(f"{indent}If  (linha {node.line}){type_of(node)}")
         print(f"{indent}  cond:")
         print_tree(node.condition, level + 2)
         print(f"{indent}  then:")
@@ -66,7 +70,7 @@ def print_tree(node, level=0):
         return
 
     if isinstance(node, ast.While):
-        print(f"{indent}While  (linha {node.line})")
+        print(f"{indent}While  (linha {node.line}){type_of(node)}")
         print(f"{indent}  cond:")
         print_tree(node.condition, level + 2)
         print(f"{indent}  body:")
@@ -74,13 +78,13 @@ def print_tree(node, level=0):
         return
 
     if isinstance(node, ast.Block):
-        print(f"{indent}Block  (linha {node.line})")
+        print(f"{indent}Block  (linha {node.line}){type_of(node)}")
         for expression in node.expressions:
             print_tree(expression, level + 1)
         return
 
     if isinstance(node, ast.Let):
-        print(f"{indent}Let  (linha {node.line})")
+        print(f"{indent}Let  (linha {node.line}){type_of(node)}")
         for binding in node.bindings:
             print_tree(binding, level + 1)
         print(f"{indent}  in:")
@@ -94,7 +98,7 @@ def print_tree(node, level=0):
         return
 
     if isinstance(node, ast.Case):
-        print(f"{indent}Case  (linha {node.line})")
+        print(f"{indent}Case  (linha {node.line}){type_of(node)}")
         print_tree(node.expression, level + 1)
         for branch in node.branches:
             print_tree(branch, level + 1)
@@ -109,7 +113,7 @@ def print_tree(node, level=0):
 
     if isinstance(node, ast.Dispatch):
         static = f"@{node.static_type}" if node.static_type else ""
-        print(f"{indent}Dispatch {static}.{node.name}  (linha {node.line})")
+        print(f"{indent}Dispatch {static}.{node.name}  (linha {node.line}){type_of(node)}")
         print(f"{indent}  receiver:")
         print_tree(node.receiver, level + 2)
         if node.args:
@@ -119,26 +123,26 @@ def print_tree(node, level=0):
         return
 
     if isinstance(node, ast.New):
-        print(f"{indent}New {node.type_name}  (linha {node.line})")
+        print(f"{indent}New {node.type_name}  (linha {node.line}){type_of(node)}")
         return
 
     # Folhas
 
     if isinstance(node, ast.IntLiteral):
-        print(f"{indent}Int {node.value}")
+        print(f"{indent}Int {node.value}{type_of(node)}")
         return
 
     if isinstance(node, ast.StringLiteral):
         # repr para revelar escapes e delimitar a string
-        print(f"{indent}String {node.value!r}")
+        print(f"{indent}String {node.value!r}{type_of(node)}")
         return
 
     if isinstance(node, ast.BoolLiteral):
-        print(f"{indent}Bool {node.value}")
+        print(f"{indent}Bool {node.value}{type_of(node)}")
         return
 
     if isinstance(node, ast.Identifier):
-        print(f"{indent}Identifier {node.name}")
+        print(f"{indent}Identifier {node.name}{type_of(node)}")
         return
 
     print(f"{indent}<nó desconhecido: {type(node).__name__}>")
