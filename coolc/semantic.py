@@ -1,5 +1,3 @@
-from unicodedata import lookup
-
 import coolc.ast as ast
 from coolc.tokens import TokenType, describe
 
